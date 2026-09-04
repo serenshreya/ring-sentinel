@@ -15,7 +15,7 @@ import {
   Layers
 } from 'lucide-react';
 
-const API_BASE = 'http://localhost:8000';
+const API_BASE = import.meta.env.VITE_API_URL || 'https://ring-sentinel.onrender.com';
 
 export function Dashboard({ session, onLogout }) {
   const [clusters, setClusters] = useState([]);
