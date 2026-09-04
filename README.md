@@ -145,6 +145,45 @@ Cluster #12  Student Hostel A (Innocent)  5         5        0               7.9
 
 ---
 
+## 🧰 Complete Tech Stack
+
+| Layer | Technology | Purpose |
+|---|---|---|
+| **Frontend** | React 18 | Core UI framework |
+| | Vite | Build tool & dev server |
+| | Tailwind CSS | Styling |
+| | Recharts | Precision/recall visualization |
+| **Backend** | FastAPI (Python) | REST API framework |
+| | Uvicorn | ASGI server |
+| | Pydantic | Request/response validation |
+| | SlowAPI | Rate limiting (30 req/min per IP) |
+| **Database & Auth** | Supabase (Postgres) | Data storage |
+| | Supabase Auth | JWT-based authentication |
+| | Row Level Security (RLS) | Database-level access control |
+| **Machine Learning** | scikit-learn | Gradient Boosting risk classifier |
+| | NetworkX | Graph construction & connected-component clustering |
+| **LLM / Explainability** | Groq API | Inference provider |
+| | Qwen 3.8-27B | Explanation generation model (explanation only, zero decision authority) |
+| **Data Source** | [Kaggle: Credit Card Fraud Detection dataset](https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud) | Realistic fraud/legitimate transaction amount distributions |
+| | Synthetic data generation (custom script) | Ring relationships, temporal train/test split, innocent-overlap injection |
+| **Hosting** | Vercel | Frontend deployment |
+| | Render | Backend deployment |
+| **Version Control** | Git + GitHub | Source control |
+
+---
+
+## 📂 Dataset Attribution
+
+The realistic fraud/legitimate transaction amount distributions used in this project are derived from the public **[Kaggle Credit Card Fraud Detection dataset](https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud)** (`credit_card_fraud_10k.csv`, a 10,000-row sample used in this build). This dataset provides anonymized, real-world transaction amounts and fraud labels.
+
+**No real Razorpay or merchant data was used anywhere in this project.** On top of the Kaggle amount distributions, we synthetically generated:
+- Customer accounts, device IDs, IP addresses, delivery addresses, and refund bank accounts
+- 6 coordinated fraud rings (with deliberately shared fingerprints across accounts)
+- 8 innocent multi-account clusters (simulating hostels/shared households sharing only a delivery address)
+- A strict temporal train/test split (Days 0–24 vs Days 24–30) to prevent data leakage and test genuine generalization
+
+---
+
 ## 🚀 Quick Start & Installation
 
 ### Prerequisites
