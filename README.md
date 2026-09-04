@@ -17,6 +17,7 @@ Merchants lose millions to coordinated return and refund abuse when malicious sy
 > **Advisory-Only Defense Guardrail**: Ring Sentinel is strictly an advisory intelligence platform for human risk managers. It **NEVER** automatically moves money, freezes bank accounts, blocks payments, or takes irreversible financial actions. All outputs serve as defensible recommendations.
 
 ---
+
 ## 🔗 Live Demo
 
 - **Live App:** https://ring-sentinel-ten.vercel.app
@@ -26,47 +27,67 @@ Merchants lose millions to coordinated return and refund abuse when malicious sy
 
 ---
 
+## 🔍 Evaluation Honesty: A Bug We Found and Fixed
+
+Our first working version reported a suspicious **100% precision and 100% recall on every single cluster** — including the training data. That's not a result worth trusting; it's a red flag.
+
+We investigated and found two real bugs:
+
+1. **Temporal leakage**: All fraud rings were distributed randomly across the full 30-day period. When we split the data 80/20 into train/test, entities from the *same* fraud rings appeared in both sets — the model wasn't being tested on anything genuinely unseen.
+2. **Missing true negatives**: Our graph only connected accounts via `device_id`, `ip_address`, and `refund_bank_account` — it never considered `delivery_address`. This meant every detected cluster was, by construction, 100% fraud. The model never saw an example of *innocent* multi-account overlap (e.g. a hostel or shared household), so it had nothing to learn to distinguish.
+
+**The fix:**
+- Fraud Rings 1–4 now exist *only* in the training period (Days 0–24). Rings 5–6 exist *only* in the test period (Days 24–30), with 100% novel customer IDs, devices, IPs, and bank accounts never seen during training.
+- The graph now includes `delivery_address` as an edge, surfacing 8 innocent multi-account clusters (simulated hostels/shared households) as real negative examples for the classifier to learn from.
+- The ML model trains strictly on historical (train-period) clusters and predicts on the held-out set using feature signals alone — no test labels are ever used during training.
+
+After this fix, the model still scored 100%/100% on the held-out set — but this time it's an earned result: it correctly identified two completely novel fraud rings it had never seen, while correctly scoring all 8 innocent clusters as low-risk (7.9%–9.7%).
+
+**Known limitation, stated plainly:** the held-out test set contains only 2 novel fraud rings and 8 innocent clusters — a small sample. A production deployment would require continuous evaluation on much larger real transaction volume before these numbers could be trusted at scale. We're reporting exactly what we tested, not more.
+
+---
+
 ## 🏗️ System Architecture
 
 ```
-                                  +---------------------------------------+
-                                  |     React 18 + Tailwind Dashboard     |
-                                  |         http://localhost:5173         |
-                                  +-------------------+-------------------+
-                                                      |
-                                          (Supabase JWT Bearer)
-                                                      v
-                                  +---------------------------------------+
-                                  |        FastAPI Backend Engine         |
-                                  |         http://localhost:8000         |
-                                  +---------+-------------------+---------+
-                                            |                   |
-                        +-------------------+                   +-------------------+
-                        |                                                           |
-                        v                                                           v
-        +-------------------------------+                           +-------------------------------+
-        |    NetworkX Identity Graph    |                           |      Groq LLM Engine          |
-        |  Nodes: Customer Accounts     |                           |  Model: qwen/qwen3.8-27b      |
-        |  Edges: Device, IP, Bank,     |                           |  Task: 1-sentence explanation |
-        |         Delivery Address      |                           |  Guardrails: No hallucinated  |
-        +---------------+---------------+                           |              scores/actions   |
-                        |                                           +-------------------------------+
-                        v
-        +-------------------------------+
-        |   Scikit-Learn ML Scorer      |
-        |  • Device Sharing Ratio       |
-        |  • Bank Sharing Ratio         |
-        |  • IP Sharing Ratio           |
-        |  • Order Velocity & Deviation |
-        +---------------+---------------+
-                        |
-                        v
-        +-------------------------------+
-        |       Supabase Cloud DB       |
-        |  • public.orders (2,000 rows) |
-        |  • public.clusters (14 rings) |
-        |  • Row Level Security (RLS)   |
-        +-------------------------------+
+                          +---------------------------------------+
+                          |     React 18 + Tailwind Dashboard     |
+                          |  https://ring-sentinel-ten.vercel.app |
+                          +-------------------+-------------------+
+                                              |
+                                  (Supabase JWT Bearer)
+                                              v
+                          +---------------------------------------+
+                          |        FastAPI Backend Engine         |
+                          |  https://ring-sentinel.onrender.com   |
+                          +---------+-------------------+---------+
+                                    |                   |
+                +-------------------+                   +-------------------+
+                |                                                           |
+                v                                                           v
++-------------------------------+                           +-------------------------------+
+|    NetworkX Identity Graph    |                           |      Groq LLM Engine          |
+|  Nodes: Customer Accounts     |                           |  Model: qwen/qwen3.8-27b      |
+|  Edges: Device, IP, Bank,     |                           |  Task: 1-sentence explanation |
+|         Delivery Address      |                           |  Guardrails: No hallucinated  |
++---------------+---------------+                           |              scores/actions   |
+                |                                           +-------------------------------+
+                v
++-------------------------------+
+|   Scikit-Learn ML Scorer      |
+|  • Device Sharing Ratio       |
+|  • Bank Sharing Ratio         |
+|  • IP Sharing Ratio           |
+|  • Order Velocity & Deviation |
++---------------+---------------+
+                |
+                v
++-------------------------------+
+|       Supabase Cloud DB       |
+|  • public.orders (2,000 rows) |
+|  • public.clusters (14 rings) |
+|  • Row Level Security (RLS)   |
++-------------------------------+
 ```
 
 ---
@@ -89,6 +110,8 @@ Legitimate Orders Disrupted     0 accounts                       10 innocent ord
 Missed Fraud Orders             0 orders                         44 fraud orders missed
 ====================================================================================================
 ```
+
+> **Sample size note:** these results are measured on a held-out test set containing 2 novel fraud rings and 8 innocent clusters — deliberately small so every entity could be manually verified as genuinely unseen. At production transaction volume, we'd expect precision/recall to settle below 100% as the model encounters more ambiguous edge cases; the architecture is designed to keep improving with continuous retraining on analyst feedback (see "What's Next" below).
 
 ### Why Ring Sentinel Outperforms Naive Rules:
 - **Zero Legitimate Disruption**: The naive baseline flagged 10 innocent shoppers buying high-value items. Ring Sentinel recognized that student residence clusters have distinct devices and unique bank accounts, scoring them at **~8% risk** (0 false positives).
@@ -161,7 +184,7 @@ Double-click [`run_all.bat`](run_all.bat) in the project root to start both back
 
 - **Secret Zero-Exposure**: API keys and database credentials are read strictly from `.env` via `python-dotenv` and Vite environment variables. `.gitignore` strictly excludes all `.env` files, virtual environments, binaries, and build artifacts.
 - **Row Level Security (RLS)**: Supabase tables (`orders`, `clusters`) enforce strict access control policies for authenticated users.
-- **CORS Lock**: Backend CORS is explicitly restricted to `http://localhost:5173`.
+- **CORS Lock**: Backend CORS is explicitly restricted to known frontend origins only — `http://localhost:5173` for local development and `https://ring-sentinel-ten.vercel.app` for the production deployment. No wildcard origins are permitted.
 - **Input Validation**: All incoming payloads and responses are validated via typed Pydantic models with constrained literals.
 - **Rate Limiting**: SlowAPI limits API calls to 30 requests/minute per IP.
 - **Anti-Hallucination Prompting**: The Groq LLM prompt enforces strict negative constraints preventing the model from deciding actions or fabricating risk scores.
@@ -173,3 +196,18 @@ Double-click [`run_all.bat`](run_all.bat) in the project root to start both back
 | Role | Email | Password | Access Level |
 |---|---|---|---|
 | **Risk Analyst** | `analyst@ringsentinel.com` | `Test1234!` | Supabase JWT Authenticated |
+
+---
+
+## What's Next (Beyond This Buildathon)
+
+- Real Razorpay transaction data integration (with merchant consent, via authorized API access)
+- Larger-scale evaluation across full production transaction volume
+- Additional graph signals (behavioral timing patterns, shared payment instrument fingerprints)
+- Human-in-the-loop feedback to continuously retrain the risk model based on analyst flag/clear decisions
+
+---
+
+## Built By
+
+Shreya Singh — [LinkedIn](https://linkedin.com/in/shreya-singh-b03a74379)
