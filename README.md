@@ -27,11 +27,11 @@ Merchants lose millions to coordinated return and refund abuse when malicious sy
 
 ---
 
-## 🔍 Evaluation Honesty: A Bug We Found and Fixed
+## 🔍 Evaluation Honesty: A Bug I Found and Fixed
 
-Our first working version reported a suspicious **100% precision and 100% recall on every single cluster** — including the training data. That's not a result worth trusting; it's a red flag.
+My first working version reported a suspicious **100% precision and 100% recall on every single cluster** — including the training data. That's not a result worth trusting; it's a red flag.
 
-We investigated and found two real bugs:
+I investigated and found two real bugs:
 
 1. **Temporal leakage**: All fraud rings were distributed randomly across the full 30-day period. When we split the data 80/20 into train/test, entities from the *same* fraud rings appeared in both sets — the model wasn't being tested on anything genuinely unseen.
 2. **Missing true negatives**: Our graph only connected accounts via `device_id`, `ip_address`, and `refund_bank_account` — it never considered `delivery_address`. This meant every detected cluster was, by construction, 100% fraud. The model never saw an example of *innocent* multi-account overlap (e.g. a hostel or shared household), so it had nothing to learn to distinguish.
