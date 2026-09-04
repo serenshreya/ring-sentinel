@@ -17,6 +17,14 @@ Merchants lose millions to coordinated return and refund abuse when malicious sy
 > **Advisory-Only Defense Guardrail**: Ring Sentinel is strictly an advisory intelligence platform for human risk managers. It **NEVER** automatically moves money, freezes bank accounts, blocks payments, or takes irreversible financial actions. All outputs serve as defensible recommendations.
 
 ---
+## 🔗 Live Demo
+
+- **Live App:** https://ring-sentinel-ten.vercel.app
+- **Backend API Docs (Swagger):** https://ring-sentinel.onrender.com/docs
+
+> Note: The backend runs on a free-tier host and may take 30–60 seconds to wake up on the first request after inactivity.
+
+---
 
 ## 🏗️ System Architecture
 
