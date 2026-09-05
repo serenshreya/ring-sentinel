@@ -171,7 +171,7 @@ Cluster #12  Student Hostel A (Innocent)  5         5        0               7.9
 | **Version Control** | Git + GitHub | Source control |
 
 ---
-
+ 
 ## 📂 Dataset Attribution
 
 The realistic fraud/legitimate transaction amount distributions used in this project are derived from the public **[Kaggle Credit Card Fraud Detection dataset](https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud)** (`credit_card_fraud_10k.csv`, a 10,000-row sample used in this build). This dataset provides anonymized, real-world transaction amounts and fraud labels.
